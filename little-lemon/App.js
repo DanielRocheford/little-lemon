@@ -5,13 +5,13 @@ import Profile from './screens/Profile';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect,createContext } from 'react';
-
+import Home from './screens/Home';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
+import { AuthContext } from './AuthContext';
+import { useState, useEffect } from 'react';
 
 const Stack = createNativeStackNavigator();
-export const AuthContext = createContext(null); 
+
 
 export default function App() {
  
@@ -53,10 +53,6 @@ export default function App() {
         </SafeAreaProvider>);
     }
 
-  
- 
-  
-
   return (
     
     <SafeAreaProvider>
@@ -66,12 +62,15 @@ export default function App() {
             <Stack.Navigator screenOptions={{
               headerShown: false
             }}>
-            {isLogIn ? (
-            <Stack.Screen name="Profile" component={Profile} />
-            /*add more stack screen if user login here*/
-            )            
-            :  <Stack.Screen name="Onboarding" component={Onboarding} /> 
-            }
+              {isLogIn ? (
+                <>
+                  <Stack.Screen name="Home" component={Home} />
+                  <Stack.Screen name="Profile" component={Profile} />            
+                  
+                </>                
+              )            
+              :  <Stack.Screen name="Onboarding" component={Onboarding} /> 
+              }
             </Stack.Navigator>
           </NavigationContainer>
             

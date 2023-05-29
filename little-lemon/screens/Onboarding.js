@@ -1,7 +1,7 @@
 import { View, Text, Image, StyleSheet, ScrollView,TextInput,TouchableOpacity,Dimensions , KeyboardAvoidingView} from 'react-native'
 import { useState ,useContext} from 'react'
 import React from 'react'
-import { AuthContext } from '../App'
+import { AuthContext } from '../AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -138,7 +138,7 @@ const Styles = StyleSheet.create({
     TextButton :{
         fontSize: 25,
         fontWeight: 'bold',
-       color: "#fff",
+        color: "#fff",
     },
    
 

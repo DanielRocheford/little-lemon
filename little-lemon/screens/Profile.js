@@ -1,13 +1,14 @@
 import { View, Text , Image, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView,TextInput } from 'react-native'
 import CheckBox from 'expo-checkbox'
-import React, { useState } from 'react'
+import React, { useState ,useContext, useRef } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { AuthContext } from '../AuthContext';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect } from 'react';
 
-const Profile = () => {
+const Profile = ({navigation, route}) => {
   const insets = useSafeAreaInsets();
   const [isOrderStatus, setOrderStatus] = useState(false);
   const [isPasswordChange, setPasswordChange] = useState(false);
@@ -21,6 +22,11 @@ const Profile = () => {
   const [isPhoneValid, setPhoneValid] = useState(true);
   const [isLastName, setLastNameValid] = useState(false);
   const [UserInitial, setUserInitial] = useState('');
+  const { setLogIn } = useContext(AuthContext); 
+  const [originalValues, setOriginalValues] = useState({});
+  const { updateData } = route.params;
+  const prevDataRef = useRef();
+
 
   const handlePhoneNumberChange = (value) => {
     setPhoneNumber(value);
@@ -40,7 +46,19 @@ const Profile = () => {
   const handleLastNameChange = (value) => {
     setLastName(value);
    };
-
+  
+  const handlelogOut = async ()=>{
+     
+      try {
+          await AsyncStorage.removeItem('USER');
+          setLogIn(false);
+          return true;
+      }
+      catch(exception) {
+          return false;
+      }
+  
+  }
   const handleSaveChanges =() =>{
     const value = {
         UfName: firstName,
@@ -68,53 +86,108 @@ const Profile = () => {
       console.log('error in submit '+error);
     }
   };
+  const  _retrieveData = async () => {
+    try {
+      
+      const value =  await AsyncStorage.getItem('USER')
+      const user = await JSON.parse(value);
+      return user;        
+    
+    
+    } catch (error) {
+      // Error retrieving data
+      console.log(error);
+    }
+  };
+  useEffect(()=>{
+        
+      
+    const fetchData = async () => {
+      const userResponse = await  _retrieveData();    
+    
+      const str = userResponse;
+
+      if (typeof JSON.stringify(str.UfName) !== "undefined") setFirstName(JSON.stringify(str.UfName).replaceAll('"', ''));
+      if (typeof JSON.stringify(str.ULastName) !== "undefined") setLastName(JSON.stringify(str.ULastName).replaceAll('"', ''));
+      if (typeof JSON.stringify(str.Uemail) !== "undefined") setEmail(JSON.stringify(str.Uemail).replaceAll('"', ''));
+      if (typeof JSON.stringify(str.UPhone) !== "undefined")setPhoneNumber(JSON.stringify(str.UPhone).replaceAll('"', ''));
+      if (typeof JSON.stringify(str.UOrderStatus) !== "undefined")setOrderStatus(JSON.stringify(str.UOrderStatus).replaceAll('"', '')=="true");
+      if (typeof JSON.stringify(str.UPassChange) !== "undefined")setPasswordChange(JSON.stringify(str.UPassChange).replaceAll('"', '')=="true");
+      if (typeof JSON.stringify(str.USpecialOffer) !== "undefined")setSpecialOffer(JSON.stringify(str.USpecialOffer).replaceAll('"', '')=="true");
+      if (typeof JSON.stringify(str.UNewsLetter) !== "undefined")setNewsletter( JSON.stringify(str.UNewsLetter).replaceAll('"', '')=="true");
+      if (typeof JSON.stringify(str.UuriImage) !== "undefined")setImage( JSON.stringify(str.UuriImage).replaceAll('"', ''));
+      const originalValues = {
+        UfName: str.UfName,
+        Uemail: str.Uemail,
+        ULastName: str.ULastName,
+        UPhone: str.UPhone,
+        UOrderStatus: str.UOrderStatus,
+        USpecialOffer: str.USpecialOffer,
+        UPassChange: str.UPassChange,
+        UNewsLetter: str.UNewsLetter,
+        UuriImage: str.UuriImage,
+      };
+      prevDataRef.current = originalValues;
+      setOriginalValues(originalValues);
+
+    };
+     
+    fetchData();
+  },[])
+  const discardChanges = () => {
+    setFirstName(originalValues.UfName);
+    setLastName(originalValues.ULastName);
+    setEmail(originalValues.Uemail);
+    setPhoneNumber(originalValues.UPhone);
+    setOrderStatus(originalValues.UOrderStatus);
+    setSpecialOffer(originalValues.USpecialOffer);
+    setPasswordChange(originalValues.UPassChange);
+    setNewsletter(originalValues.UNewsLetter);
+    setImage(originalValues.UuriImage);
+  };
+  
   useEffect(()=>{
     
-    _retrieveData = async () => {
-      try {
-        console.log('test2');
-        const value = await AsyncStorage.getItem('USER');
-        const str = JSON.parse(value);
-        console.log(str)
-        try{
-            setFirstName(JSON.stringify(str.UfName).replaceAll('"', ''));
-            
-            setEmail(JSON.stringify(str.Uemail).replaceAll('"', ''));
-            setLastName(JSON.stringify(str.ULastName).replaceAll('"', ''));
-            setPhoneNumber(JSON.stringify(str.UPhone).replaceAll('"', ''));
-            setOrderStatus(JSON.stringify(str.UOrderStatus).replaceAll('"', '')=="true");
-            setPasswordChange(JSON.stringify(str.UPassChange).replaceAll('"', '')=="true");
-            setSpecialOffer(JSON.stringify(str.USpecialOffer).replaceAll('"', '')=="true");
-            setNewsletter( JSON.stringify(str.UNewsLetter).replaceAll('"', '')=="true");
-            setImage( JSON.stringify(str.UuriImage).replaceAll('"', ''));
-            
-        }catch(error){
-            console.log(error);
-        }
-      
         
-        if (lastName.length>0){
-            setLastNameValid(!isLastName);
-            console.log('last name exist');
-            setUserInitial(firstName.slice(0,1).toUpperCase() + lastName.slice(0,1).toUpperCase()) ;
-            console.log(UserInitial); 
-        }else{
-            console.log('last name doesnt exist');
-             
-            setUserInitial(firstName.slice(0,1).toUpperCase());
-            console.log(UserInitial);
-        }
-      
-      } catch (error) {
-        // Error retrieving data
-        console.log(error);
+      if (lastName.length>0){
+          setLastNameValid(!isLastName);
+          console.log('last name exist');
+          setUserInitial(firstName.slice(0,1).toUpperCase() + lastName.slice(0,1).toUpperCase()) ;
+          console.log(UserInitial); 
+      }else{
+          console.log('last name doesnt exist');
+            
+          setUserInitial(firstName.slice(0,1).toUpperCase());
+          console.log(UserInitial);
       }
-    };
     
     _retrieveData(); 
-  },[]) 
+  },[lastName,image,firstName]) 
 
+ 
+  const handleUpdateData = () => {
+   
+    const updatedData = {
+      UfName: firstName,
+      Uemail: email,
+      ULastName :lastName,
+      UPhone : phoneNumber,
+      UOrderStatus: isOrderStatus,
+      USpecialOffer: isSpecialOffer,
+      UPassChange: isPasswordChange,
+      UNewsLetter: isNewsletter,
+      UuriImage : image,
 
+    };
+    // Call the updateData callback function from the previous screen
+    if (updatedData !== originalValues) {
+      console.log('change will be made')
+      updateData(updatedData);
+    }
+
+    // Go back to the previous screen
+    navigation.goBack();
+  };
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
@@ -131,7 +204,10 @@ const Profile = () => {
       setImage(result.assets[0].uri);
     }
   };
+  const removeImage = ()=>{
 
+    setImage(null)
+  }
   return (
     
 
@@ -144,7 +220,7 @@ const Profile = () => {
         backgroundColor: '#495E57',
         }}>
         <View style={Styles.Header} >
-                <TouchableOpacity>
+                <TouchableOpacity onPress={handleUpdateData}>
                     <Image style={Styles.goBack} source={require('../assets/gobackB.png')}/>
                 </TouchableOpacity>
                 <Image style={Styles.logo} source={require('../assets/LogoLittleL.png')}/>
@@ -162,7 +238,7 @@ const Profile = () => {
                 <TouchableOpacity onPress={pickImage} style={Styles.buttonChangePic}>
                     <Text style={Styles.TextButton}>Change </Text>
                 </TouchableOpacity>   
-                <TouchableOpacity style={Styles.buttonRemovePic}>
+                <TouchableOpacity onPress={removeImage} style={Styles.buttonRemovePic}>
                     <Text style={Styles.text}>Remove</Text>
                 </TouchableOpacity>   
             </View>
@@ -212,13 +288,13 @@ const Profile = () => {
                     Newsletter
                 </Text>
             </View>
-            <TouchableOpacity style={Styles.buttonLogout}  >
+            <TouchableOpacity onPress={handlelogOut} style={Styles.buttonLogout}  >
                 <Text style={Styles.TextButton}>
                     Log out
                 </Text>
             </TouchableOpacity>
             <View style={Styles.buttonDiscardHeader}>
-               <TouchableOpacity style={Styles.btnDiscard}>
+               <TouchableOpacity onPress={discardChanges} style={Styles.btnDiscard}>
                     <Text style={Styles.text}>Discard changes</Text>
                 </TouchableOpacity>   
                 <TouchableOpacity onPress={handleSaveChanges} style={Styles.buttonLogout}>
@@ -265,22 +341,25 @@ const Styles = StyleSheet.create({
         width: 60,
         height: 60,      
         borderRadius: 100,    
-        marginLeft: 20,
+        padding: 10,
+        
         justifyContent: 'center',
         alignItems: 'center',
 
     },
     profilPic:{
 
-        width: 80,
-        height: 80,
+        width: 90,
+        height: 90,
         borderRadius: 100,
-        marginLeft: 20,
-        marginTop : 20,
+        
+       
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 20,
+        
         padding: 10,
+
+        
 
     },
     profilPicheaderbtn :{
