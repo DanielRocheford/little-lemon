@@ -6,6 +6,8 @@ import { useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dish from '../components/Dish';
 import { FlatList } from 'react-native-gesture-handler';
+import Category from '../components/Category';
+import { debounce } from 'lodash';
 
   import {    
     createMenuItemTable,
@@ -25,32 +27,22 @@ const Home = ({navigation}) => {
     const [isLastName, setLastNameValid] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [data, setData] = useState([]);
+    
+    const DishCat = ['Starters', 'Mains', 'Desserts','Drinks'];
+    const [selectedCategories, setSelectedCategories] = useState([]);
 
-    
-      const isDataStored = async () => {
-        try {
-          const tableExists = await isTableExists();
-          if (tableExists) {
-            const tableHasData = await isTableEmpty();
-            if (tableHasData) {
-             return true; 
-            } else {
-             return false;
-            }
-          } else {
-            return false ;
-          }
-        } catch (error) {
-          console.log('Error checking table:', error);
-        }
-      };
-      
-    
-          
+  const handleCategoryPress =  (categoryName) => {
+    if (selectedCategories.includes(categoryName)) {
+      setSelectedCategories(selectedCategories.filter((name) => name !== categoryName));
+    } else {
+      setSelectedCategories([...selectedCategories, categoryName]);
+    }
+  };
+   
+  
     const handleTextChange = (text) => {
-        setSearchText(text);
-        onSearch(text);
-      };
+     setSearchText(text);
+    }
 
     const getMenu = async ()=>{
         try{
@@ -91,7 +83,6 @@ const Home = ({navigation}) => {
     const fetchData = async () => {
         const [menuResponse, userResponse] = await Promise.all([getMenu(), _retrieveData()]);
         setData(menuResponse);
-        console.log('somewhere I belong '+ JSON.stringify(menuResponse) )
         const str = userResponse;
         
      
@@ -103,6 +94,30 @@ const Home = ({navigation}) => {
       
         return menuResponse;
         };
+    
+    useEffect(()=>{
+      (async () => {
+        try {
+          let  selectedCatTosend
+          if (selectedCategories.length>0){
+             selectedCatTosend  = selectedCategories.map((item)=> item.toLowerCase())
+          }else{
+            selectedCatTosend = DishCat.map((item)=> item.toLowerCase())
+          }
+          
+
+          console.log('selected cat'+JSON.stringify(selectedCatTosend));
+          let menuItems = await filterByQueryAndCategories(searchText,selectedCatTosend);
+          console.log('menu sorted '+menuItems);
+          setData(menuItems);
+         
+        } catch (e) {
+          // Handle error
+          Alert.alert(e.message);
+        }
+      })()
+
+    },[selectedCategories, searchText])
 
     useEffect(()=>{
         (async () => {
@@ -115,31 +130,33 @@ const Home = ({navigation}) => {
               // After that, every application restart lo ads the menu from the database
               if (!menuItems.length) {
                 const menuItems = await fetchData();
-                console.log(menuItems);
+                console.log('data feteched '+menuItems)
                 saveMenuItems(menuItems);
                 
-              }
+              }else{
+                setData(menuItems);
+                const userInfos = await _retrieveData();                        
+                if (typeof JSON.stringify(userInfos.UfName) !== "undefined") setFirstName(JSON.stringify(userInfos.UfName).replaceAll('"', ''));
+                if (typeof JSON.stringify(userInfos.UuriImage) !== "undefined") setImage( JSON.stringify(userInfos.UuriImage).replaceAll('"', ''));                
+                if (typeof JSON.stringify(userInfos.ULastName) !== "undefined") setLastName(JSON.stringify(userInfos.ULastName).replaceAll('"', ''));
+              } 
              
             } catch (e) {
-              // Handle error
+              // Handle error 
               Alert.alert(e.message);
             }
           })()
-          
-        
-        
-        
-        
+         
       },[])
       
     useEffect(() => {
         if (lastName.length > 0) {
           setLastNameValid(!isLastName);
           setUserInitial(firstName.slice(0, 1).toUpperCase() + lastName.slice(0, 1).toUpperCase());
-          console.log('last name exist '+UserInitial);
+          
         } else {
           setUserInitial(firstName.slice(0, 1).toUpperCase());
-          console.log('last name not exist '+UserInitial);
+   
 
         }
     }, [firstName, lastName,data]);   
@@ -182,18 +199,15 @@ const Home = ({navigation}) => {
         </View>  
         <Text style ={Styles.catTitle}>ORDER FOR DELIVERY!</Text> 
         <View style={Styles.dishCategoryContainer}>
-            <TouchableOpacity style = {Styles.dishCat}>
-                <Text style={Styles.dishCatName}>Starters</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style = {Styles.dishCat}>
-                <Text style={Styles.dishCatName}>Mains</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style = {Styles.dishCat}>
-                <Text style={Styles.dishCatName}>Desserts</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style = {Styles.dishCat}>
-                <Text style={Styles.dishCatName}>Drinks</Text>
-            </TouchableOpacity>    
+            <FlatList
+              data={DishCat}
+              horizontal
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <Category isSelected={selectedCategories.includes(item)}
+                onPress={() => handleCategoryPress(item)}  name={item}/>          
+            )}
+          />               
         </View>
         <View
             style={{
@@ -204,8 +218,8 @@ const Home = ({navigation}) => {
             }}
             />
         <FlatList
-        data={data}
-        renderItem={({ item }) => (
+          data={data}
+          renderItem={({ item }) => (
           <Dish name={item.name} description={item.description} price={item.price} image={item.image}/>
         )}
       />
@@ -268,11 +282,7 @@ const Styles = StyleSheet.create({
         height : 100,
         width : 100,
     },
-    dishCatName: {
-        fontSize : 20,
-        fontWeight : 'bold',
-        color :'#495e57'
-    },
+
     catTitle: {
         fontWeight :'bold',
         fontSize : 20,
@@ -285,13 +295,7 @@ const Styles = StyleSheet.create({
         fontWeight :'bold',
         color : '#F4CE14',
     },
-    dishCat: {
-        borderRadius : 10,
-        backgroundColor : '#edefee',
-        height : 40,
-        padding: 5,
-        margin: 10
-    },
+
     TextImage: {
        flexDirection: 'row',
        alignItems: 'center',

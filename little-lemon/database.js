@@ -59,53 +59,76 @@ export async function getMenuItems() {
   return new Promise((resolve) => {
     db.transaction((tx) => {
       tx.executeSql('select * from menuitems', [], (_, { rows }) => {
+        console.log('get menu'+JSON.stringify(rows._array) )
         resolve(rows._array);
       });
     });
   });
 }
-
 export async function saveMenuItems(menuItems) {
-
-  
-    db.transaction((tx) => {
+  console.log('db save' + JSON.stringify(menuItems));
+  db.transaction(
+    (tx) => {
+      menuItems.forEach((item) => {
         tx.executeSql(
-          `insert into menuitems (uuid, category, name, price, description, image) values ${menuItems.map((item) =>`( '${item.category}', '${item.name}', '${item.price}', '${item.description}','${item.image}')`).join(', ')}`
+          `insert into menuitems (category, name, price, description, image) values ( ?, ?, ?, ?, ?)`,
+          [
+            item.category,
+            item.name,
+            item.price,
+            item.description,
+            item.image,
+          ],
+          (_, { rowsAffected }) => {
+            if (rowsAffected > 0) {
+              console.log('Insertion successful.');
+            } else {
+              console.log('Insertion failed.');
+            }
+          },
+          (_, error) => {
+            console.log('Transaction error:', error);
+          }
         );
-      }
-    );
-
+      });
+    },
+    (error) => {
+      console.log('Transaction error:', error);
+    },
+    () => {
+      console.log('Transaction successfully completed.');
+    }
+  );
 }
 
 
-export async function filterByQueryAndCategories(query, activeCategories) {
-  return new Promise((resolve, reject) => {
- 
 
-    db.transaction((tx) => {
-      let whereClause = '';
-      let params = [];
 
-      if (Array.isArray(activeCategories) && activeCategories.length > 0) {
-        whereClause = ' WHERE category IN (' + activeCategories.map(() => '?').join(',') + ')';
-        params = activeCategories;
-      }
-
-      if (query) {
-        if (whereClause) {
-          whereClause += ' AND ';
-        } else {
-          whereClause = ' WHERE ';
-        }
-
-        whereClause += 'title LIKE ?';
-        params.push(`%${query}%`);
-      }
-
-      tx.executeSql(`SELECT * FROM menuitems${whereClause}`, params, (_, { rows }) => {
-        resolve(rows._array);
-      });
-    });
-
+export async function filterByQueryAndCategories(query, activeCategories) {  
+  
+  return new Promise((resolve) => {
+   
+    var stringTobeSorted = activeCategories.join("', '");
+      
+        
+        db.transaction(
+          (tx) => {
+          tx.executeSql( `select * from menuitems where name like '%${query}%' AND   category IN('${stringTobeSorted}') `, [], (_, { rows }) => {
+           
+              
+            resolve(rows._array);  
+                   
+          }),
+          (error) => {
+            console.log('Transaction sort error:', error);
+          },
+          () => {
+            console.log('Transaction sort successfully completed.');
+          }
+        });
+      
+      
+   
+     
   });
 }
