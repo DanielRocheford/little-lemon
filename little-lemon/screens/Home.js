@@ -7,7 +7,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dish from '../components/Dish';
 import { FlatList } from 'react-native-gesture-handler';
 import Category from '../components/Category';
-import { debounce } from 'lodash';
 
   import {    
     createMenuItemTable,
@@ -41,7 +40,11 @@ const Home = ({navigation}) => {
    
   
     const handleTextChange = (text) => {
-     setSearchText(text);
+      clearTimeout(timerId); 
+
+      timerId = setTimeout(() => {
+        setSearchText(text);
+      }, 500);
     }
 
     const getMenu = async ()=>{
