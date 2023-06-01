@@ -14,7 +14,7 @@ const Profile = ({navigation, route}) => {
   const [isPasswordChange, setPasswordChange] = useState(false);
   const [isSpecialOffer, setSpecialOffer] = useState(false);
   const [isNewsletter, setNewsletter] = useState(false);
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,10 +23,10 @@ const Profile = ({navigation, route}) => {
   const [isLastName, setLastNameValid] = useState(false);
   const [UserInitial, setUserInitial] = useState('');
   const { setLogIn } = useContext(AuthContext); 
-  const [originalValues, setOriginalValues] = useState({});
-  const { updateData } = route.params;
+  const [originalValues, setOriginalValues] = useState({});  
   const prevDataRef = useRef();
-
+  const { updateData,AUserInitial, AsetUserInitial } = useContext(AuthContext);
+  const [ImageShowing, setImageShow] = useState(false);
 
   const handlePhoneNumberChange = (value) => {
     setPhoneNumber(value);
@@ -101,7 +101,7 @@ const Profile = ({navigation, route}) => {
   };
   useEffect(()=>{
         
-      
+    
     const fetchData = async () => {
       const userResponse = await  _retrieveData();    
     
@@ -131,7 +131,7 @@ const Profile = ({navigation, route}) => {
       setOriginalValues(originalValues);
 
     };
-     
+    
     fetchData();
   },[])
   const discardChanges = () => {
@@ -148,22 +148,35 @@ const Profile = ({navigation, route}) => {
   
   useEffect(()=>{
     
-        
       if (lastName.length>0){
           setLastNameValid(!isLastName);
           console.log('last name exist');
-          setUserInitial(firstName.slice(0,1).toUpperCase() + lastName.slice(0,1).toUpperCase()) ;
+          AsetUserInitial(firstName.slice(0,1).toUpperCase() + lastName.slice(0,1).toUpperCase()) ;
           console.log(UserInitial); 
       }else{
           console.log('last name doesnt exist');
             
-          setUserInitial(firstName.slice(0,1).toUpperCase());
+          AsetUserInitial(firstName.slice(0,1).toUpperCase());
           console.log(UserInitial);
       }
     
     _retrieveData(); 
   },[lastName,image,firstName]) 
 
+  useEffect(()=>{
+
+
+    if(image.length>0){
+      
+      console.log('imag '+ image)
+      setImageShow(true)
+    }else{
+      console.log('imag not'+ image)
+      setImageShow(false)
+
+    }
+
+  },[image])
  
   const handleUpdateData = () => {
    
@@ -171,7 +184,7 @@ const Profile = ({navigation, route}) => {
       UfName: firstName,
       Uemail: email,
       ULastName :lastName,
-      UPhone : phoneNumber,
+      UPhone : phoneNumber, 
       UOrderStatus: isOrderStatus,
       USpecialOffer: isSpecialOffer,
       UPassChange: isPasswordChange,
@@ -190,6 +203,7 @@ const Profile = ({navigation, route}) => {
   };
 
   const pickImage = async () => {
+    
     // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -198,15 +212,18 @@ const Profile = ({navigation, route}) => {
       quality: 1,
     });
 
-    console.log(result);
+    
+    console.log('ici c paris'+ result.assets[0].uri);
 
     if (!result.canceled) {
+      console.log('ici c paris'+ result.assets[0].uri);
       setImage(result.assets[0].uri);
     }
   };
   const removeImage = ()=>{
-
-    setImage(null)
+    
+    setImageShow(false)
+    setImage('')
   }
   return (
     
@@ -225,7 +242,7 @@ const Profile = ({navigation, route}) => {
                 </TouchableOpacity>
                 <Image style={Styles.logo} source={require('../assets/LogoLittleL.png')}/>
                 <TouchableOpacity style={Styles.profilPicheaderbtn} onPress={pickImage} >                    
-                    {image ?  <Image source={{ uri: image }} style={Styles.profilPicHeader} /> : <Text style={Styles.textPicProfilHeader}>{UserInitial}</Text>}
+                    {ImageShowing ?  <Image source={{ uri: image }} style={Styles.profilPicHeader} /> : <Text style={Styles.textPicProfilHeader}>{AUserInitial}</Text>}
                 </TouchableOpacity>      
             
             </View>     
@@ -233,7 +250,7 @@ const Profile = ({navigation, route}) => {
             <Text style={Styles.headline}>Personal information</Text>
             <View style={Styles.HeaderSecond}>
                 <TouchableOpacity style ={Styles.profilbtn}>
-                     {image ?  <Image source={{ uri: image }} style={Styles.profilPic} /> : <Text style={Styles.textPicProfil}>{UserInitial}</Text>}
+                     {ImageShowing ?  <Image source={{ uri: image }} style={Styles.profilPic} /> : <Text style={Styles.textPicProfil}>{AUserInitial}</Text>}
                 </TouchableOpacity>  
                 <TouchableOpacity onPress={pickImage} style={Styles.buttonChangePic}>
                     <Text style={Styles.TextButton}>Change </Text>

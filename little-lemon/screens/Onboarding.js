@@ -14,7 +14,7 @@ const Onboarding = ({navigation}) => {
   const [isEmailValid, setMailValid] = useState(false);
   const { setLogIn } = useContext(AuthContext); 
   const insets = useSafeAreaInsets();
- 
+  const { updateLoginStatus } = useContext(AuthContext);
 
 
 
@@ -57,7 +57,7 @@ const Onboarding = ({navigation}) => {
         UfName: firstName,
         Uemail: email,
       };
-    setLogIn(true);
+      updateLoginStatus(true);
     console.log('save phase in')
     _storeData(value);
   }

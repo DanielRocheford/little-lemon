@@ -1,94 +1,68 @@
-import { StyleSheet } from 'react-native';
-import Onboarding from "./screens/Onboarding";
-import SplashScreen from './screens/SplashScreen';
-import Profile from './screens/Profile';
+import { AuthContext, AuthProvider } from './AuthContext';
+import { useContext, useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Home from './screens/Home';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthContext } from './AuthContext';
-import { useState, useEffect } from 'react';
+import Onboarding from './screens/Onboarding';
+import Profile from './screens/Profile';
+import Home from './screens/Home';
+import SplashScreen from './screens/SplashScreen';
 
 const Stack = createNativeStackNavigator();
 
+const App = () => {
+  const [isLoading, setLoading] = useState(true);
 
-export default function App() {
- 
   
 
-  const [isLoading, setLoading] =  useState(true);
-  const [isLogIn , setLogIn] = useState(false);
-  
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AppContent isLoading={isLoading} setLoading={setLoading}/>
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+};
+
+const AppContent = ({ isLoading, setLoading  }) => {
+  const { isLoggedIn, updateLoginStatus } = useContext(AuthContext);
   useEffect(() => {
     const _retrieveData = async () => {
       console.log('app entry ');
       try {
         const value = await AsyncStorage.getItem('USER');
         if (value !== null) {
-          console.log("not null" +value)
-          setLogIn(true);
+          console.log('not null' + value);
+          updateLoginStatus(true);
           setLoading(false);
         } else {
-        
-          setLogIn(false);
+          updateLoginStatus(false);
           setLoading(false);
         }
       } catch (error) {
-        // Error retrieving data
-        console.log('error in retrieve data '+error);
+        console.log('error in retrieve data ' + error);
       }
     };
-  
+
     _retrieveData();
   }, []);
-
-
-
-    if (isLoading) {
-      
-      return (
-        <SafeAreaProvider>
-          <SplashScreen />
-        </SafeAreaProvider>);
-    }
-
   return (
-    
-    <SafeAreaProvider>
-      <AuthContext.Provider value={{ isLogIn, setLogIn }}>
-        
-        <NavigationContainer >
-            <Stack.Navigator screenOptions={{
-              headerShown: false
-            }}>
-              {isLogIn ? (
-                <>
-                  <Stack.Screen name="Home" component={Home} />
-                  <Stack.Screen name="Profile" component={Profile} />            
-                  
-                </>                
-              )            
-              :  <Stack.Screen name="Onboarding" component={Onboarding} /> 
-              }
-            </Stack.Navigator>
-          </NavigationContainer>
-            
-      </AuthContext.Provider>
-    </SafeAreaProvider>
-        
-    
+    <NavigationContainer>
+      {isLoading ? (
+        <SplashScreen />
+      ) : isLoggedIn ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="Profile" component={Profile} />
+        </Stack.Navigator>
+      ) : (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Onboarding" component={Onboarding} />
+        </Stack.Navigator>
+      )}
+    </NavigationContainer>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#495E57',
-    paddingLeft: 60,
-    paddingRight: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-});
+export default App;

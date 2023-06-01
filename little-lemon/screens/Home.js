@@ -2,12 +2,13 @@ import { View, Text , Image, TouchableOpacity, StyleSheet,TextInput } from 'reac
 import React from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dish from '../components/Dish';
 import { FlatList } from 'react-native-gesture-handler';
-import Category from '../components/Category';
+import { AuthContext } from '../AuthContext';
 
+import Category from '../components/Category';
   import {    
     createMenuItemTable,
     getMenuItems,
@@ -26,10 +27,12 @@ const Home = ({navigation}) => {
     const [isLastName, setLastNameValid] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [data, setData] = useState([]);
-    
+    const { AuserData, AUserInitial, AsetUserInitial } = useContext(AuthContext); 
+    const [wordToseek, setWordToSeek] = useState('');
+    const [ImageShowing, setImageShow] = useState(false);
     const DishCat = ['Starters', 'Mains', 'Desserts','Drinks'];
     const [selectedCategories, setSelectedCategories] = useState([]);
-
+    let timerId;
   const handleCategoryPress =  (categoryName) => {
     if (selectedCategories.includes(categoryName)) {
       setSelectedCategories(selectedCategories.filter((name) => name !== categoryName));
@@ -37,13 +40,14 @@ const Home = ({navigation}) => {
       setSelectedCategories([...selectedCategories, categoryName]);
     }
   };
-   
+    const [userData, setUserData] = useState({});
   
     const handleTextChange = (text) => {
+      setSearchText(text);
       clearTimeout(timerId); 
 
       timerId = setTimeout(() => {
-        setSearchText(text);
+        setWordToSeek(text);
       }, 500);
     }
 
@@ -75,9 +79,26 @@ const Home = ({navigation}) => {
       };
     
     const  ShowProfil = ()=>{
-        navigation.navigate('Profile',{ updateData: handleUpdateData })
+        navigation.navigate('Profile')
     }
-    const handleUpdateData = (updatedData) => {
+    const updateData = (updatedData) => {
+        setUserData(updatedData)
+        
+        if (typeof JSON.stringify(updatedData.UuriImage) !== "undefined"){
+          if(updatedData.UuriImage.length>0)
+          {
+              console.log('imag '+ image)
+              setImageShow(true)
+        
+          }else{
+          
+            console.log('imag not'+ image)
+            setImageShow(false)
+                
+  
+          }
+        }
+       
         if (typeof JSON.stringify(updatedData.UfName) !== "undefined") setFirstName(JSON.stringify(updatedData.UfName).replaceAll('"', ''));
         if (typeof JSON.stringify(updatedData.UuriImage) !== "undefined") setImage( JSON.stringify(updatedData.UuriImage).replaceAll('"', ''));                
         if (typeof JSON.stringify(updatedData.ULastName) !== "undefined") setLastName(JSON.stringify(updatedData.ULastName).replaceAll('"', ''))
@@ -97,7 +118,17 @@ const Home = ({navigation}) => {
       
         return menuResponse;
         };
-    
+
+
+    useEffect(()=>{
+
+
+      updateData(AuserData);
+
+    },[AuserData])
+
+
+
     useEffect(()=>{
       (async () => {
         try {
@@ -109,9 +140,7 @@ const Home = ({navigation}) => {
           }
           
 
-          console.log('selected cat'+JSON.stringify(selectedCatTosend));
-          let menuItems = await filterByQueryAndCategories(searchText,selectedCatTosend);
-          console.log('menu sorted '+menuItems);
+          let menuItems = await filterByQueryAndCategories(wordToseek,selectedCatTosend);
           setData(menuItems);
          
         } catch (e) {
@@ -120,20 +149,19 @@ const Home = ({navigation}) => {
         }
       })()
 
-    },[selectedCategories, searchText])
+    },[selectedCategories, wordToseek])
 
     useEffect(()=>{
+        
         (async () => {
+          console.log('string img '+image)    
+
             try {
               await createMenuItemTable();
               let menuItems = await getMenuItems();
               
-              // The application only fetches the menu data once from a remote URL
-              // and then stores it into a SQLite database.
-              // After that, every application restart lo ads the menu from the database
               if (!menuItems.length) {
                 const menuItems = await fetchData();
-                console.log('data feteched '+menuItems)
                 saveMenuItems(menuItems);
                 
               }else{
@@ -153,81 +181,89 @@ const Home = ({navigation}) => {
       },[])
       
     useEffect(() => {
+
+      
         if (lastName.length > 0) {
           setLastNameValid(!isLastName);
-          setUserInitial(firstName.slice(0, 1).toUpperCase() + lastName.slice(0, 1).toUpperCase());
-          
+          console.log(image)
+          AsetUserInitial(firstName.slice(0, 1).toUpperCase() + lastName.slice(0, 1).toUpperCase());
+
+         console.log('last  exist'+ UserInitial );
+
         } else {
-          setUserInitial(firstName.slice(0, 1).toUpperCase());
-   
+          AsetUserInitial(firstName.slice(0, 1).toUpperCase());
+          console.log('last not  exist'+ UserInitial );
 
         }
     }, [firstName, lastName,data]);   
+   
  
   return (
-    <View style={{    
-        flex: 1,   
-        alignItems: 'center',
-        
-        marginBottom: insets.bottom,
-        marginTop: insets.top,
-        backgroundColor: '#fff',
-        }}>
-        <View style={Styles.Header} >
-                  
-                    <Image style={Styles.logo} source={require('../assets/LogoLittleL.png')}/>
-                    <TouchableOpacity onPress={ShowProfil}  style={Styles.profilPicheaderbtn}  >                    
-                        {image ?  <Image source={{ uri: image }} style={Styles.profilPicHeader} /> : <Text style={Styles.textPicProfilHeader}>{UserInitial}</Text>}
-                    </TouchableOpacity>               
-        </View>
-        <View style={Styles.mainBlock}>
-            <Text style ={Styles.title}>Little Lemon</Text>
-            
-            <View style ={Styles.TextImage}>
-                <View style={Styles.textContainer}>
-                    <Text style={Styles.subtitle}>Chicago</Text>
-                    <Text style ={Styles.description}>We are a family owned Mediterranean restaurant, focused on traditional recipes served with a modern twist</Text>
-         
-                </View>
-                <Image style={Styles.mainImage} source={ require('../assets/HeroImage.png')}/>
-            </View>
-            <TextInput
-                style={Styles.input}
-                value={searchText}
-                onChangeText={handleTextChange}
-                placeholder="Search..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
-            />
-            
-        </View>  
-        <Text style ={Styles.catTitle}>ORDER FOR DELIVERY!</Text> 
-        <View style={Styles.dishCategoryContainer}>
-            <FlatList
-              data={DishCat}
-              horizontal
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
-                <Category isSelected={selectedCategories.includes(item)}
-                onPress={() => handleCategoryPress(item)}  name={item}/>          
-            )}
-          />               
-        </View>
-        <View
-            style={{
-                borderBottomColor: 'black',
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                alignSelf:'stretch',
-                margin : 20,
-            }}
-            />
-        <FlatList
-          data={data}
-          renderItem={({ item }) => (
-          <Dish name={item.name} description={item.description} price={item.price} image={item.image}/>
-        )}
-      />
-        
-    </View>
+        <View style={{    
+          flex: 1,   
+          alignItems: 'center',
+          
+          marginBottom: insets.bottom,
+          marginTop: insets.top,
+          backgroundColor: '#fff',
+          }}>
+          <View style={Styles.Header} >
+                    
+                      <Image style={Styles.logo} source={require('../assets/LogoLittleL.png')}/>
+                      <TouchableOpacity onPress={ShowProfil}  style={Styles.profilPicheaderbtn}  >                    
+                          {ImageShowing ? (<Image source={{ uri: image }} style={Styles.profilPicHeader} />)  : <Text style={Styles.textPicProfilHeader}>{AUserInitial}</Text>}
+                      </TouchableOpacity>               
+          </View>
+          <View style={Styles.mainBlock}>
+              <Text style ={Styles.title}>Little Lemon</Text>
+              
+              <View style ={Styles.TextImage}>
+                  <View style={Styles.textContainer}>
+                      <Text style={Styles.subtitle}>Chicago</Text>
+                      <Text style ={Styles.description}>We are a family owned Mediterranean restaurant, focused on traditional recipes served with a modern twist</Text>
+          
+                  </View>
+                  <Image style={Styles.mainImage} source={ require('../assets/HeroImage.png')}/>
+              </View>
+              <TextInput
+                  style={Styles.input}
+                  value={searchText}
+                  onChangeText={handleTextChange}
+                  placeholder="Search..."
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+              />
+              
+          </View>  
+          <Text style ={Styles.catTitle}>ORDER FOR DELIVERY!</Text> 
+          <View style={Styles.dishCategoryContainer}>
+              <FlatList
+                data={DishCat}
+                horizontal
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <Category isSelected={selectedCategories.includes(item)}
+                  onPress={() => handleCategoryPress(item)}  name={item}/>          
+              )}
+            />               
+          </View>
+          <View
+              style={{
+                  borderBottomColor: 'black',
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  alignSelf:'stretch',
+                  margin : 20,
+              }}
+              />
+          <FlatList
+            data={data}
+            renderItem={({ item }) => (
+            <Dish name={item.name} description={item.description} price={item.price} image={item.image}/>
+          )}
+        />
+          
+      </View>
+    
+    
   )
 }
 const Styles = StyleSheet.create({
