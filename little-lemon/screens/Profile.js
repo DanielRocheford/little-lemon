@@ -27,6 +27,7 @@ const Profile = ({navigation, route}) => {
   const prevDataRef = useRef();
   const { updateData,AUserInitial, AsetUserInitial } = useContext(AuthContext);
   const [ImageShowing, setImageShow] = useState(false);
+  const { updateLoginStatus } = useContext(AuthContext);
 
   const handlePhoneNumberChange = (value) => {
     setPhoneNumber(value);
@@ -51,7 +52,7 @@ const Profile = ({navigation, route}) => {
      
       try {
           await AsyncStorage.removeItem('USER');
-          setLogIn(false);
+          updateLoginStatus(false);
           return true;
       }
       catch(exception) {
